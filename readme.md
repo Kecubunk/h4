@@ -64,7 +64,7 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 
 		- Cancel a timer, given its UID. NO-OP If no timer found
 		
-				`void never()`
+	void never()
 
 		- Cancel ALL timers (including any that call this, hence no subsequent chain is executed)
 		- Use with care, never(uid) always preferred. Save UID of any function that may need cancellation
