@@ -1,0 +1,36 @@
+#######################################
+# Syntax Coloring Map For H4
+#######################################
+
+#######################################
+# Library (KEYWORD1)
+#######################################
+
+H4	KEYWORD1
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+h4	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+every	KEYWORD2
+everyRandom	KEYWORD2
+loop	KEYWORD2
+never	KEYWORD2
+nTimes	KEYWORD2
+nTimesRandom	KEYWORD2
+once	KEYWORD2
+onceRandom	KEYWORD2
+runNow	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+H4_STD_FN	LITERAL1
+H4_TIMER	LITERAL1
