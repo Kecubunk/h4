@@ -57,7 +57,7 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 
 		- Consume jobs in queue.
 		- Must be called as frequently as possible and not be "starved".
-		- Any calls to delay() from within any of your callback will interfere with the timing of all H4 functions.
+		- Any calls to delay() from within your callback will interfere with the timing of all H4 functions.
 		- In short, there is no longer any reason for you to call delay - use a timer/callback!
 		
 **never** 		`void never(H4_TIMER uid)`
@@ -97,7 +97,8 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 
 		- Schedules function fn for imminent execution, i.e. no initial delay as in once... functions
 		- Should really be called "runSoonish" or "runNext"...
-		- Use this in any asynchronous callback to "wrap" async functionality into a serialised task. This reduces delays and minimises resource clashes / timing issues
+		- Use this in any asynchronous callback to "wrap" async functionality into a serialised task. 
+		- This reduces delays and minimises resource clashes / timing issues
 		
 
 (C) 2017 **Phil Bowles**
