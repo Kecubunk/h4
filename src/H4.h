@@ -51,7 +51,6 @@ SOFTWARE.
 #include <Arduino.h>
 #include <Ticker.h>
 #include <deque>
-#include <functional>
 #include <algorithm>
 #include <mutex.h>
 
@@ -60,56 +59,59 @@ using namespace std;
 typedef function<void()>  		H4_STD_FN;	// saves a lot of typing
 
 class smartTicker: public Ticker {
-    static    uint32_t nextUid;			// Global UID counter
   public:
     uint32_t  	ms=0;					// ticker milliseconds
-	uint32_t  	Rmax=0;					// Random Max value (ms doubles as Rmin) - ticker is Random if Rmax > ms
+    uint32_t  	Rmax=0;					// Random Max value (ms doubles as Rmin) - ticker is Random if Rmax > ms
     uint32_t  	rq=0;					// Requeue: 0=free running; any other value = countdown counter
     H4_STD_FN   fn=nullptr;				// primary std::function to call on Tick
     H4_STD_FN   chain=nullptr;			// "onComplete" std::function to call on non free-running expiry
     uint32_t  	uid=0;					// unique ID for each timer created
     
     void smartAttach(uint32_t _ms,H4_STD_FN _fn, uint32_t _rq=0,uint32_t _Rmax=0,H4_STD_FN chain=nullptr,uint32_t uid=0);
-	void onlyAttach();
+		void onlyAttach();
    
     ~smartTicker(){}
 };
 
 typedef smartTicker*                    pSTick_t;		// for ticker container (deque)
-typedef deque<pSTick_t>::iterator		pDQ_t;			// ptr to contained Ticker
+typedef deque<pSTick_t>::iterator				pDQ_t;			// ptr to contained Ticker
 
 typedef uint32_t						H4_TIMER;
 
 class H4 {
 		friend	class	smartTicker;
-		
-		static	mutex_t       			jqMutex;		// mutual locking between loop() / _queueFn()
+						uint32_t					load=0;
+						uint32_t					prevUid=0;
+		static	mutex_t       		jqMutex;		// mutual locking between loop() / _queueFn()
 
-		static	deque<pSTick_t>         jobQ;			// main job Queue
-		static	deque<pSTick_t>			tickers;		// list of all active Tickers
+		static		deque<pSTick_t>	jobQ;			// main job Queue
+		static		deque<pSTick_t>	tickers;		// list of all active Tickers
 		
-				pDQ_t		_getTicker(uint32_t uid);				
-				void 		_killTicker(uint32_t uid);
-		static	void 		_queueFn(pSTick_t pt);
-				void 		_removeTicker(pDQ_t t);				
-				void		_rqTicker(uint32_t uid);
-				uint32_t 	_timer(uint32_t msec,H4_STD_FN fn,uint32_t rq=0,uint32_t Rmax=0,H4_STD_FN chain=nullptr,uint32_t uid=0);
-		static	void 		_waitMutex(mutex_t*);
-	
+						pDQ_t			_getTicker(uint32_t uid);				
+						void 			_killTicker(uint32_t uid);
+		static	void 			_queueFn(pSTick_t pt);
+						void 			_removeTicker(pDQ_t t);				
+						void			_rqTicker(uint32_t uid);
+						uint32_t 	_timer(uint32_t msec,H4_STD_FN fn,uint32_t rq=0,uint32_t Rmax=0,H4_STD_FN chain=nullptr);
+		static	void 			_waitMutex(mutex_t*);
+
+		static	H4_TIMER	nextUid;
+		
 	public:
-		H4(){ CreateMutex(&jqMutex); }
-		~H4(){}
+											H4();
+											~H4(){}
 		
-				H4_TIMER	every(uint32_t msec,H4_STD_FN fn);
-				H4_TIMER	everyRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn);
-				void 		loop();
-				void 		never();
-				void 		never(H4_TIMER t);
-				H4_TIMER 	nTimes(uint32_t n,uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
-				H4_TIMER 	nTimesRandom(uint32_t n,uint32_t msec,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
-				H4_TIMER 	once(uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
-				H4_TIMER 	onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
-				void	 	runNow(H4_STD_FN fn);
+						H4_TIMER	every(uint32_t msec,H4_STD_FN fn);
+						H4_TIMER	everyRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn);
+						uint32_t	getLoad(){ return load; };
+						void 			loop();
+						void 			never();
+						void 			never(H4_TIMER t);
+						H4_TIMER 	nTimes(uint32_t n,uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
+						H4_TIMER 	nTimesRandom(uint32_t n,uint32_t msec,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
+						H4_TIMER 	once(uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
+						H4_TIMER 	onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
+						void			queueFunction(H4_STD_FN fn);
 };
 
 extern H4 h4;

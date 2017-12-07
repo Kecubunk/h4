@@ -23,12 +23,12 @@ SOFTWARE.
 */
 #include <H4.h>
 
-uint32_t  smartTicker::nextUid=1;			// global Unique ID value for new Tickers
-
 deque<pSTick_t>               				H4::jobQ;				// The job Queue
 deque<pSTick_t>             					H4::tickers;		// the active Ticker list
 
 mutex_t																H4::jqMutex;		// the Queue serialisation lock
+
+H4_TIMER															H4::nextUid=0;
 //
 //	smartTicker (extends Ticker)
 //
@@ -44,8 +44,7 @@ void ICACHE_FLASH_ATTR smartTicker::smartAttach(uint32_t _ms,H4_STD_FN _fn, uint
   rq=_rq;
   Rmax=_Rmax;
   chain=move(_chain);
-  uid=_uid ? _uid:nextUid++;
-//	if(!(uid%10000)) Serial.printf("ten thousands tickers!\n"); // diagnostic warning of rate problems
+  uid=_uid;
 	onlyAttach();
 }
 //####################################################################################################################
@@ -53,6 +52,13 @@ void ICACHE_FLASH_ATTR smartTicker::smartAttach(uint32_t _ms,H4_STD_FN _fn, uint
 //	H4 proper
 //
 //#####################################################################################################################
+H4::H4(){
+	CreateMutex(&jqMutex);
+	every(1000,bind([](H4* me){
+					me->load=me->nextUid-me->prevUid;
+					me->prevUid=me->nextUid;
+					},this));
+}
 //
 //	_getTicker
 //		- utility function, return queue ptr from given uid
@@ -87,7 +93,7 @@ void H4::_queueFn(pSTick_t pt){
 //		- get rid and cleanup
 //
 void ICACHE_FLASH_ATTR H4::_removeTicker(pDQ_t t){
-		int is=jobQ.size();
+//		int is=jobQ.size();
 		uint32_t uid=(*t)->uid;
 		jobQ.erase( remove_if(jobQ.begin(), jobQ.end(),[&](pSTick_t pt) {	return uid==pt->uid; }),jobQ.end());
 		delete (*t);
@@ -106,7 +112,7 @@ void ICACHE_FLASH_ATTR H4::_rqTicker(uint32_t uid){
 		uint32_t rq=pt->rq;
 		if(rq){																						// expiry-type (not free-running) now, once..., nTimes...
 			if(!(--(pt->rq))){															// just counted down to zero
-				if(pt->chain) runNow(pt->chain);							// so schedule chain if it has one
+				if(pt->chain) queueFunction(pt->chain);							// so schedule chain if it has one
 				_removeTicker(t);															// cleanup expired timer
 			}
 		}
@@ -119,9 +125,9 @@ void ICACHE_FLASH_ATTR H4::_rqTicker(uint32_t uid){
 //	_timer
 //		- create underlying ticker and add to ticker container
 //
-H4_TIMER ICACHE_FLASH_ATTR H4::_timer(uint32_t msec,H4_STD_FN fn,uint32_t rq,uint32_t Rmax,H4_STD_FN chain,H4_TIMER uid){
+H4_TIMER ICACHE_FLASH_ATTR H4::_timer(uint32_t msec,H4_STD_FN fn,uint32_t rq,uint32_t Rmax,H4_STD_FN chain){
   pSTick_t pt(new smartTicker());
-  pt->smartAttach(msec,move(fn),rq,Rmax,move(chain),uid);
+  pt->smartAttach(msec,move(fn),rq,Rmax,move(chain),++nextUid);
 	tickers.push_back(pt);
 	return pt->uid;
 }
@@ -223,10 +229,10 @@ H4_TIMER ICACHE_FLASH_ATTR H4::onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN 
   return _timer(Rmin,fn,1,Rmax,onComplete);  
 }
 //
-//	RunNow
+//	queueFunction - EXACTLY AS PER runNow but with less confusing name
 //		- schedules function fn for imminent execution, i.e. no initial delay as in once... functions
 //		- should really be called "runSoonish"
 //
-void ICACHE_FLASH_ATTR H4::runNow(H4_STD_FN fn){
+void ICACHE_FLASH_ATTR H4::queueFunction(H4_STD_FN fn){
   _timer(0,fn,1);
 }

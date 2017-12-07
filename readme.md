@@ -33,6 +33,7 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 ```c++
 	H4_TIMER	every(uint32_t msec,H4_STD_FN fn);
 	H4_TIMER	everyRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn);
+	uint32_t	getLoad();
 	void 		loop();
 	void 		never();
 	void 		never(H4_TIMER uid);
@@ -40,7 +41,7 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 	H4_TIMER 	nTimesRandom(uint32_t n,uint32_t msec,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
 	H4_TIMER 	once(uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
 	H4_TIMER 	onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
-	void	 	runNow(H4_STD_FN fn);
+	void	 	queueFunction(H4_STD_FN fn);
 ```
 
 **every** 		`H4_TIMER every(uint32_t msec,H4_STD_FN fn)`
@@ -52,19 +53,23 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 
 		- Runs function fn every random (Rmin < T < Rmax) milliseconds.
 		- Returns timer UID which can be used to subsequently cancel this timer [see never(uid) ]
+		
+**getLoad** `uint32_t	getLoad()`
+
+		- Returns a value indicating numbers of timers created in last second. Useful for detecting "rogue" processes creating multiple timers too rapidly
 
 **loop** 		`void loop()`
 
 		- Consume jobs in queue.
 		- Must be called as frequently as possible and not be "starved".
-		- Any calls to delay() from within your callback will interfere with the timing of all H4 functions.
+		- Any calls to delay() from within any of your callback will interfere with the timing of all H4 functions.
 		- In short, there is no longer any reason for you to call delay - use a timer/callback!
 		
 **never** 		`void never(H4_TIMER uid)`
 
 		- Cancel a timer, given its UID. NO-OP If no timer found
 		
-	void never()
+				`void never()`
 
 		- Cancel ALL timers (including any that call this, hence no subsequent chain is executed)
 		- Use with care, never(uid) always preferred. Save UID of any function that may need cancellation
@@ -93,12 +98,10 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 		- Allows optional "onComplete" function (chain) to be run at function end
 		- equivalent to nTimesRandom(1...
 
-**runNow**		`void runNow(H4_STD_FN fn)`
+**runNow**		`void queueFunction(H4_STD_FN fn)`
 
 		- Schedules function fn for imminent execution, i.e. no initial delay as in once... functions
-		- Should really be called "runSoonish" or "runNext"...
-		- Use this in any asynchronous callback to "wrap" async functionality into a serialised task. 
-		- This reduces delays and minimises resource clashes / timing issues
+		- Use this in any asynchronous callback to "wrap" async functionality into a serialised task. This reduces delays and minimises resource clashes / timing issues
 		
 
 (C) 2017 **Phil Bowles**
