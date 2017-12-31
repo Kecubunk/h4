@@ -24,9 +24,17 @@ SOFTWARE.
 
 /*
  *    Demonstrates usage of the H4 timer library with: 
- *      - "chaining" of functions, complex interaction between functions
- *      - importance of "sequencing" and undertanding exactly WHEN functions run
- *      - asynchronous "pattern" flashing of LED (morse code SOS: ...---...)
+ *      - "when" and "whenever" functions
+ *      - both take a "when" function (H4_WHEN_FN) which must return a value and a second "action" function (H4_STD_FN)
+ *      - when the return value of the "when" function is zero, the action function is run
+ *      - "when" is single-shot
+ *      - "whenever" is continuous (thuse the action function needs to reset the when condition, or a loop will occur!)
+ *      
+ *      THESE FUNCTIONS ARE FOR ADVANCED USERS ONLY! - THERE IS GENERALLY ALWAYS A BETTER WAY TO DO WHATEVER YOU THINK YOU WANT TO DO
+ *      NB the "when" function is evaluated every 1ms, hence it must not incur any lengthy process of waits or delays etc
+ *      
+ *      YOU REALLY NEED TO SEE HOW H4_4_ADVANCED RUNS BEFORE WATCHING THIS DEMO!!!
+ *      
  */
 #include <H4.h>
 
@@ -43,6 +51,8 @@ char* genres[]={
   "garage",
   "indie"
 };
+
+int genre;
 //
 void everyMinute(){
   Serial.printf("T=%d 1 min tick\n",millis()/1000);
@@ -92,6 +102,14 @@ void setup() {
   delay(1000);
   Serial.println("Let's get it on: https://www.youtube.com/watch?v=x6QZn9xiuOE");
 
+  h4.when([]{return 0; },[]{ Serial.printf("Now is the time!\n"); }); // happens "now" 
+  h4.when([]{return 1; },[]{ Serial.printf("You meet an honest politician\n"); }); // will never happen (never returns 0)
+  h4.when([]{return !(genre==1); /* punk */ },[]{ Serial.printf("punk is dead\n"); });
+  h4.whenever([]{return !(genre==2); /* jazz */ },[]{ 
+    Serial.printf("Johnny hates jazz\n");
+    genre=1; // or we get a rapid loop until the next time a random choice ISN'T jazz!!! BEWARE THIS
+    });
+
   heartbeat=h4.every(1000,bind(pulsePin,LED_BUILTIN,100,LOW));
   edwin=h4.every(1000,bind(argue,"Edwin Starr","the best"));
   h4.onceRandom(25000,15000,[](){
@@ -103,7 +121,10 @@ void setup() {
     Serial.printf("T=%d Check the LED it's flashing S-O-S in morse code every 5 seconds...\n",millis()/1000);
   });
   
-    h4.everyRandom(5000,10000,[](){Serial.printf("T=%d (annoying %s music every 5-10 seconds)\n",millis()/1000,genres[random(0,8)]); }); 
+    h4.everyRandom(5000,10000,[](){
+      genre=random(0,8);
+      Serial.printf("T=%d (annoying %s music every 5-10 seconds)\n",millis()/1000,genres[genre]);
+      }); 
     h4.once(10000,[](){
         Serial.printf("T=%d Stop arguing! They were both great, but Edwin WAS better...\n",millis()/1000);
         h4.never(marvin);

@@ -24,17 +24,13 @@ SOFTWARE.
 
 /*
  *    Demonstrates usage of the H4 timer library with: 
- *      - Arbitrary Class methods
- *      - Lambda functions
- *      - C++ Standard library std::function objects 
+ *      - randomTimes function calls function at fixed interval, but only a random number of times
+ *      - randomTimesRandom function calls function a random number of times at random intervals
  *      
- *      NB all std::function calls must resolve to <std:function<void()>> which they wiil
- *      if std::bind is used to bind all parameters at call time. a helper macro is 
- *      defined H4_STD_FN as <std:function<void()>> to assist
- *    
+ *      
+ *      NB watch H4_3_Chaining first to see how it works
  */
 #include <H4.h>
-#include<functional>                                                   // don't omit this!
 
 H4  h4;
 
@@ -63,32 +59,33 @@ void setup() {
   pinMode(LED_BUILTIN,OUTPUT);
   h4.every(250,toggleBuiltin);                                          // flash LED rapidly on/off every 250 ms (4x per second)
 
-  h4.queueFunction(bind(&simpleClass::print,sC,"Yes, it CAN be done - ONCE"));       // will run once with no delay as soon as youe exit setup
-  h4.everyRandom(10000,30000,
-    bind(&simpleClass::print,sC,"It CAN be done often too!")                 // and (rather annoyingly) again every 10 - 30 seconds
-    ); 
-
-/*  
-  could also have done:
-
-  H4_STD_FN fn=bind(&simpleClass::print,sC,"Yes, it CAN be done!");
-  h4.queueFunction(fn);
-  h4.everyRandom(10000,30000,fn);
-*/
-
-  simple=h4.every(1000,bind(simpleFunction,&counter));                  // run simpleFunction every second and hold onto its "UID" so we can cancel it later
-  h4.onceRandom(10000,15000,[](){                                       // after between 10 and 15 seconds, cancel the simpleFunction
-    Serial.printf("T=%d Cancelling simple function\n",millis());        // by running this lambda
-    h4.never(simple);                                                   // ...a lot like life....
-    });                              
+  H4_STD_FN  jackson5=[](){
+    Serial.print("The Jackson 5 sang: ");
+    h4.nTimes(3,1500,[]()
+      {
+      static char c=0x41;
+      Serial.printf("%c ",c++);       // run 3 times...A B C
+      },
+      []()                            // and then... chain function
+        {
+        Serial.print("\nIt's easy as: ");
+        h4.nTimes(3,1500,[](){
+          static int n=1;
+          Serial.printf("%d ",n++);     // 1 2 3
+          },                          // and then... chain function
+          []()
+            {
+            Serial.print("\n...That's how easy it can be!\n");
+            h4.once(5000,[](){ Serial.println("have a listen to the real thing: https://www.youtube.com/watch?v=ho7796-au8U"); });
+            } // end 123 chain function
+        ); // end 123 function
+        } // end abc chain function
+      ); // end "ABC" function
+  }; // end fn declaration
+//  sing it...some time in the future
+  h4.randomTimes(1,5,30000,jackson5); // do it between 1 and 5 times (at least 30 seconds apart
+  h4.randomTimesRandom(2,4,15000,35000,jackson5); // this is certain to overlap with the previous causing mayhem
 }
-/*
-  h4.loop must be called as often as possible, all your timings will be "out" if you don't
-  do not do anything in loop that causes any long delays or waits for external resources.
-  use Async libraries, register a callback and use "runNow" in the callback.
-  If you do this, you will NEVER need to call delay() - which is a GOOD THING
-
-*/
 
 void loop() {
   h4.loop();                                                           // you MUST call this as often as possible

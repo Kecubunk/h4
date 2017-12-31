@@ -1,4 +1,4 @@
-#define H4_VERSION "0.9.2"
+#define H4_VERSION "0.9.3"
 /*
 	Authors:
 							PMB	Phil Bowles		<philbowles2012@gmail.com>
@@ -6,6 +6,12 @@
 				nothing (yet)
 
 	Changelog:
+	
+		1/1/2018	0.9.3	new functions added:
+							when / whenever + new example H4_5_Whenever
+							randomTimes / randomTimesRandom + new example H4_6_Mayhem
+							some code tidying, new classes H4Countown / H4randomCountdown added
+		
 		2/12/2017	0.9.2	BUGFIX: nextUID -> static ( else derived classes generate dup uid!!!)
 							runNow removed
 		

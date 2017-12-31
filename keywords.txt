@@ -28,6 +28,10 @@ nTimesRandom	KEYWORD2
 once	KEYWORD2
 onceRandom	KEYWORD2
 queueFunction	KEYWORD2
+randomTimes	KEYWORD2
+randomTimesRandom	KEYWORD2
+when	KEYWORD2
+whenever	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
@@ -35,3 +39,4 @@ queueFunction	KEYWORD2
 
 H4_STD_FN	LITERAL1
 H4_TIMER	LITERAL1
+H4_WHEN_FN	LITERAL1

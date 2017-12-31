@@ -13,6 +13,26 @@ H4 is named after John Harrison's "First Sea Watch", built in the 1700s to claim
 	
 Harrison's work was fundamental to the success of the British Navy and merchant marine, read the fascinating history here: https://en.wikipedia.org/wiki/John_Harrison
 
+# What's new in 0.9.3
+
+* when(H4_WHEN_FN,H4_STD_FN) function
+* whenever(H4_WHEN_FN,H4_STD_FN) function
+
+Think "IFTT" or debug "watch" statements. When H4_WHEN_FN returns zero, H4_STD_FN is run. This occurs in "global scope" so it's great for spotting bugs, e.g.:
+```cpp
+	when([](){ return !(globalvalue==666); },[](){ Serial.println("globalvalue has been corrupted"); }); // single-shot
+	whenever([](){ return digitalRead(5); },[](){ Serial.println("PIN 5 LOW!!!"); }); // repetetive
+```
+
+NB the H4_WHEN_FN needs to be "short 'n' sweet" (preferably < 1ms) to prevent exponential Q growth leading to crash
+Care must be taken with the "whenever" variant to reset the H4_WHEN_FN trigger, or a 1ms rapid loop will occur
+Ideally they should be used a) by expert users b) rarely c) carefully and d) for debugging only! There is *always* a better way to do what you THINK you need them for
+
+* randomTimes
+* randomTimesRandom
+
+Random version of their "nTimes" equivalents useful for simulation / testing / gaming etc
+
 # Getting Started
 
 ## Prerequisites
@@ -29,6 +49,7 @@ Numerous tutorials exists explaing how to intall libraries into your Arduino IDE
 N.B. You must call the H4 `loop()` function from within the main loop of your program as often as possible
 
 H4_STD_FN is shorthand for `std::function<void(void)>`
+H4_WHEN_FN is shorthand for `std::function<uint32_t(void)>`
 
 ```c++
 	H4_TIMER	every(uint32_t msec,H4_STD_FN fn);
@@ -42,6 +63,10 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 	H4_TIMER 	once(uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
 	H4_TIMER 	onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
 	void	 	queueFunction(H4_STD_FN fn);
+	H4_TIMER 	randomTimes(uint32_t tmin,uint32_t tmax,uint32_t msec,H4_STD_FN fn,H4_STD_FN chain=nullptr);
+	H4_TIMER 	randomTimesRandom(uint32_t tmin,uint32_t tmax,uint32_t msec,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN chain=nullptr);
+	void		when(H4_WHEN_FN,H4_STD_FN);
+	void		whenever(H4_WHEN_FN,H4_STD_FN);	
 ```
 
 **every** 		`H4_TIMER every(uint32_t msec,H4_STD_FN fn)`
@@ -98,11 +123,29 @@ H4_STD_FN is shorthand for `std::function<void(void)>`
 		- Allows optional "onComplete" function (chain) to be run at function end
 		- equivalent to nTimesRandom(1...
 
-**runNow**		`void queueFunction(H4_STD_FN fn)`
+**queueFunction**		`void queueFunction(H4_STD_FN fn)`
 
 		- Schedules function fn for imminent execution, i.e. no initial delay as in once... functions
 		- Use this in any asynchronous callback to "wrap" async functionality into a serialised task. This reduces delays and minimises resource clashes / timing issues
-		
 
-(C) 2017 **Phil Bowles**
+**randomTimes**			`H4_TIMER randomTimes(uint32_t tmin,uint32_t tmax,uint32_t msec,H4_STD_FN fn,H4_STD_FN onComplete)`
+
+		- runs function fn random number of times where tmin < n < tmax, each after delay msec milliseconds.
+		- allows "onComplete" function (chain) to be run at function end
+		
+**randomTimesRandom**	`H4_TIMER randomTimesRandom(uint32_t tmin,uint32_t tmax,uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN onComplete)`
+
+		- runs function fn random number of times where tmin < n < tmax, each after random delay of between Rmin and Rmax milliseconds.
+		- allows "onComplete" function (chain) to be run at function end
+
+**when**				`void when(H4_WHEN_FN w,H4_STD_FN fn)`
+
+		- function fn will execute once when function w returns ZERO
+
+**whenever**			`void whenever(H4_WHEN_FN w,H4_STD_FN fn)`
+
+		- function fn will execute while ever function w returns ZERO, thus:
+		- care must be taken to reset w condition else rapid (1msec) loop of function fn will occur until w returns NON-ZERO
+
+(C) 2017,2018 **Phil Bowles**
 philbowles2012@gmail.com

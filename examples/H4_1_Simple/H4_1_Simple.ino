@@ -41,7 +41,7 @@ SOFTWARE.
 
 H4  h4;
 
-uint32_t simple;                                                       // we need this global variable because later we are going to cancel the simple task
+H4_TIMER simple;                                                       // we need this global variable because later we are going to cancel the simple task
 /*
     NB this is NOT ideal programming "style" - ideally a Lambda function would be a lot cleaner (and simpler to understand)
     This better method is shown in a later example
@@ -52,7 +52,7 @@ void simpleFunction(){
 }
 
 void toggleBuiltin(){
-    digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));
+  digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));
 }
 
 void cancelSimple(){
@@ -73,7 +73,6 @@ void setup() {
   If you do this, you will NEVER need to call delay() - which is a GOOD THING
 
 */
-
 void loop() {
   h4.loop();                                                           // you MUST call this as often as possible
   if(!(millis()%5000)) {

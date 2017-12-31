@@ -38,7 +38,7 @@ void ICACHE_FLASH_ATTR smartTicker::onlyAttach(){
 //
 //	smartAttach
 //
-void ICACHE_FLASH_ATTR smartTicker::smartAttach(uint32_t _ms,H4_STD_FN _fn, uint32_t _rq,uint32_t _Rmax,H4_STD_FN _chain,uint32_t _uid){
+void ICACHE_FLASH_ATTR smartTicker::smartAttach(uint32_t _ms,H4_STD_FN _fn, H4_WHEN_FN _rq,uint32_t _Rmax,H4_STD_FN _chain,uint32_t _uid){
   fn=move(_fn);
   ms=_ms;
   rq=_rq;
@@ -109,10 +109,9 @@ void ICACHE_FLASH_ATTR H4::_rqTicker(uint32_t uid){
 	t=_getTicker(uid);
 	if(t!=tickers.end()){
 		pSTick_t pt=(*t);
-		uint32_t rq=pt->rq;
-		if(rq){																						// expiry-type (not free-running) now, once..., nTimes...
-			if(!(--(pt->rq))){															// just counted down to zero
-				if(pt->chain) queueFunction(pt->chain);							// so schedule chain if it has one
+		if(pt->rq){																			// expiry-type (not free-running) now, once..., nTimes...
+			if(!(pt->rq())){															// just counted down to zero
+				if(pt->chain) queueFunction(pt->chain);				// so schedule chain if it has one
 				_removeTicker(t);															// cleanup expired timer
 			}
 		}
@@ -125,7 +124,7 @@ void ICACHE_FLASH_ATTR H4::_rqTicker(uint32_t uid){
 //	_timer
 //		- create underlying ticker and add to ticker container
 //
-H4_TIMER ICACHE_FLASH_ATTR H4::_timer(uint32_t msec,H4_STD_FN fn,uint32_t rq,uint32_t Rmax,H4_STD_FN chain){
+H4_TIMER ICACHE_FLASH_ATTR H4::_timer(uint32_t msec,H4_STD_FN fn,H4_WHEN_FN rq,uint32_t Rmax,H4_STD_FN chain){
   pSTick_t pt(new smartTicker());
   pt->smartAttach(msec,move(fn),rq,Rmax,move(chain),++nextUid);
 	tickers.push_back(pt);
@@ -160,7 +159,7 @@ H4_TIMER ICACHE_FLASH_ATTR H4::every(uint32_t msec,H4_STD_FN fn){
 //	  - Returns timer UID which can be use to cancel [see never(uid) ]
 //
 H4_TIMER ICACHE_FLASH_ATTR H4::everyRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn){
-  return _timer(Rmin,fn,0,Rmax);  
+  return _timer(Rmin,fn,nullptr,Rmax);  
 }
 //
 //	loop
@@ -199,7 +198,7 @@ void ICACHE_FLASH_ATTR H4::never(){
 //		- nTimes(1,.. is equivalent to once(...
 //
 H4_TIMER ICACHE_FLASH_ATTR H4::nTimes(uint32_t n,uint32_t msec,H4_STD_FN fn,H4_STD_FN onComplete){
-  return _timer(msec,fn,n,0,onComplete);
+  return _timer(msec,fn,H4Countdown(n),0,onComplete);
 }
 //
 //	nTimesRandom
@@ -208,7 +207,7 @@ H4_TIMER ICACHE_FLASH_ATTR H4::nTimes(uint32_t n,uint32_t msec,H4_STD_FN fn,H4_S
 //		- nTimesRandom(1,... is equivalent to onceRandom(...
 //
 H4_TIMER ICACHE_FLASH_ATTR H4::nTimesRandom(uint32_t n,uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN onComplete){
-  return _timer(Rmin,fn,n,Rmax,onComplete);
+  return _timer(Rmin,fn,H4Countdown(n),Rmax,onComplete);
 }
 //
 //	once
@@ -217,7 +216,7 @@ H4_TIMER ICACHE_FLASH_ATTR H4::nTimesRandom(uint32_t n,uint32_t Rmin,uint32_t Rm
 //		- equivalent to nTimes(1...
 //
 H4_TIMER ICACHE_FLASH_ATTR H4::once(uint32_t msec,H4_STD_FN fn,H4_STD_FN onComplete){
-  return _timer(msec,fn,1,0,onComplete);
+  return _timer(msec,fn,H4Countdown(1),0,onComplete);
 }
 //
 //	onceRandom
@@ -226,7 +225,7 @@ H4_TIMER ICACHE_FLASH_ATTR H4::once(uint32_t msec,H4_STD_FN fn,H4_STD_FN onCompl
 //		- equivalent to nTimesRandom(1...
 //
 H4_TIMER ICACHE_FLASH_ATTR H4::onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN onComplete){
-  return _timer(Rmin,fn,1,Rmax,onComplete);  
+  return _timer(Rmin,fn,H4Countdown(1),Rmax,onComplete);  
 }
 //
 //	queueFunction - EXACTLY AS PER runNow but with less confusing name
@@ -234,5 +233,39 @@ H4_TIMER ICACHE_FLASH_ATTR H4::onceRandom(uint32_t Rmin,uint32_t Rmax,H4_STD_FN 
 //		- should really be called "runSoonish"
 //
 void ICACHE_FLASH_ATTR H4::queueFunction(H4_STD_FN fn){
-  _timer(0,fn,1);
+  _timer(0,fn,H4Countdown(1));
+}
+//
+//	randomTimes
+//		- runs function fn random number of times where tmin < n < tmax, each after delay msec milliseconds.
+//		- allows "onComplete" function (chain) to be run at function end
+//
+H4_TIMER 	ICACHE_FLASH_ATTR H4::randomTimes(uint32_t tmin,uint32_t tmax,uint32_t msec,H4_STD_FN fn,H4_STD_FN onComplete){
+  return _timer(msec,fn,H4RandomCountdown(tmin,tmax),0,onComplete);
+}
+//
+//	randomTimesRandom
+//		- runs function fn random number of times where tmin < n < tmax, each after random delay of between Rmin and Rmax milliseconds.
+//		- allows "onComplete" function (chain) to be run at function end
+//
+H4_TIMER 	ICACHE_FLASH_ATTR H4::randomTimesRandom(uint32_t tmin,uint32_t tmax,uint32_t Rmin,uint32_t Rmax,H4_STD_FN fn,H4_STD_FN onComplete){
+  return _timer(Rmin,fn,H4RandomCountdown(tmin,tmax),Rmax,onComplete);
+}
+//
+//	when
+//		- function fn will execute when function w returns ZERO
+//
+void ICACHE_RAM_ATTR H4::when(H4_WHEN_FN w,H4_STD_FN fn){
+  _timer(1,[]{},w,0,fn);
+}
+//
+//	whenever
+//		- function fn will execute when function w returns ZERO and then reschedule itself
+//		- care must be taken to reset w condition else rapid (1msec) loop will occur
+//
+void ICACHE_RAM_ATTR H4::whenever(H4_WHEN_FN w,H4_STD_FN fn){
+  when(w,bind([this](H4_WHEN_FN w,H4_STD_FN fn){
+		fn();
+		whenever(w,fn);
+		},w,fn));
 }

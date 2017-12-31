@@ -27,14 +27,13 @@ SOFTWARE.
  *      - "chaining" of functions
  */
 #include <H4.h>
-#include<functional>                                                   // don't omit this!
 
 H4  h4;
 
 class simpleClass{
   public:
     void print(const char* x){
-      Serial.printf("simpleClass: %s\n",x);  
+      Serial.printf("T=%d simpleClass: %s\n",millis(),x);  
     }
 };
 
@@ -78,18 +77,10 @@ void setup() {
         ); // end 123 function
         } // end abc chain function
       ); // end "ABC" function
-
   }; // end fn declaration
 //  sing it...some time in the future
-  h4.onceRandom(5000,1000,jackson5);
+  h4.onceRandom(5000,10000,jackson5);
 }
-/*
-  h4.loop must be called as often as possible, all your timings will be "out" if you don't
-  do not do anything in loop that causes any long delays or waits for external resources.
-  use Async libraries, register a callback and use "runNow" in the callback.
-  If you do this, you will NEVER need to call delay() - which is a GOOD THING
-
-*/
 
 void loop() {
   h4.loop();                                                           // you MUST call this as often as possible
@@ -97,26 +88,3 @@ void loop() {
     Serial.printf("T=%d doing some stuff in main loop\n",millis());
   }
 }
-
-/*  Sample output:
-
-
-T=5000 doing some stuff in main loop
-T=5000 doing some stuff in main loop
-T=5000 doing some stuff in main loop
-The Jackson 5 sang: A B C 
-It's easy as: 1 2 3 
-...That's how easy it can be!
-T=10000 doing some stuff in main loop
-T=10000 doing some stuff in main loop
-T=10000 doing some stuff in main loop
-T=10000 doing some stuff in main loop
-have a listen to the real thing: https://www.youtube.com/watch?v=ho7796-au8U
-T=15000 doing some stuff in main loop
-T=15000 doing some stuff in main loop
-T=15000 doing some stuff in main loop
-T=15000 doing some stuff in main loop
-T=20000 doing some stuff in main loop
-T=20000 doing some stuff in main loop
-
-*/
